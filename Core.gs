@@ -1,146 +1,115 @@
-function loadCalc() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("RAWDATA");
-   var rangeData = ss.getDataRange();
-  var lastRow = rangeData.getLastRow();
-  var searchRange = ss.getRange(2,2, lastRow-1, 14);
-  var rangeValues = searchRange.getValues();
-  cropCalc(ss, rangeValues, lastRow);
-  taxCalc(ss, rangeValues, lastRow);
-  updateStatus();
-  processRow(ss);
-  
-}
-function numberWithCommas(x) {
-    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
-function processRow(ss) {
- //Send discord here!
-  //https://discordapp.com/api/webhooks/571846379996184576/GCh04ZrHMfQuuSsFvVmTj1mH_dIHxPGbjFzUAEPizitA3SVm8dHJQmETKwmcK4BLHQWu
-  
-  //get last row in RAWDATA
-  var message = "";
-
-  var channel ="reports";
-  var latest = ss.getDataRange().getLastRow();
-  var lastRow = ss.getRange(latest,1,1,15).getValues();
-  lastRow = lastRow[0];
-  var report = {
-    type: lastRow[1],
-    from: lastRow[2],
-    equipment: lastRow[3],
-    modifications: lastRow[4],
-    crop: lastRow[5],
-    quantity: numberWithCommas(lastRow[6]),
-    period: numberWithCommas(lastRow[7]),
-    revenue: "$"+numberWithCommas(lastRow[8]),
-    expenses: "$"+numberWithCommas(lastRow[9]),
-    to: lastRow[10],
-    amount: "$"+numberWithCommas(Math.floor(lastRow[11])),
-    description: numberWithCommas(lastRow[12]),
-    auth: numberWithCommas(lastRow[13]),
+var priceList = [500,520,890,1030,1170,675,1125,240,210,170,500,50];
+var priceListKeys = ["Wheat","Barley","Oats","Canola","Soybeans","Corn","Sunflowers","Potatoes","Sugarbeet","Sugarcane","Digestate","Straw"];
+var taxReport = function (farm,period,newVehicles,soldVehicles,newLivestock,soldAnimals,construction,soldBuildings,landPurchase,soldLand,vehicleRunning,vehicleLeasing,animalUpkeep,propMaintain,propIncome,soldWood,soldBales,soldWool,soldMilk,fuel,seed,fertilizer,saplings,water,harvestIncome,biogasIncome,contractsIncome,wagePayment,other) {
+  this.farm = farm;
+  this.period = period;
+  this.newVehicles = newVehicles;
+  this.soldVehicles = soldVehicles;
+  this.newLivestock = newLivestock;
+  this.soldAnimals = soldAnimals;
+  this.construction = construction;
+  this.soldBuildings = soldBuildings;
+  this.landPurchase = landPurchase;
+  this.soldLand = soldLand;
+  this.vehicleRunning = vehicleRunning;
+  this.vehicleLeasing = vehicleLeasing;
+  this.animalUpkeep = animalUpkeep;
+  this.propMaintain = propMaintain;
+  this.propIncome = propIncome;
+  this.soldWood = soldWood;
+  this.soldBales = soldBales;
+  this.soldWool = soldWool;
+  this.soldMilk = soldMilk;
+  this.fuel = fuel;
+  this.seed = seed;
+  this.fertilizer = fertilizer;
+  this.saplings = saplings;
+  this.water = water;
+  this.harvestIncome = harvestIncome;
+  this.biogasIncome = biogasIncome;
+  this.contractsIncome = contractsIncome;
+  this.wagePayment = wagePayment;
+  this.other = other;
+  this.income = 0;
+  this.expenses = 0;
+  this.commissionSplit = "";
+  this.calculateIncome = function() {
+    this.income = this.soldVehicles + this.soldAnimals + this.soldBuildings + this.soldLand + this.propIncome + this.soldWood + this.soldBales + this.soldWool + this.soldMilk + this.harvestIncome + this.biogasIncome + this.contractsIncome;
+    if (this.other>0) this.income+=this.other;
   };
-  var description="";
-  var url = "";
-  if (report.type == "Money Transfer") {
-    url = "https://docs.google.com/spreadsheets/d/1qKu9sxr5YHj-z0GVlnU00ZH4Bebc6RsaG1yLkEnmss4/edit#gid=1961007078";
-    description = "[Money Transfer]("+url+") requested. \n \n" + report.from + " to send " + report.amount + " to " + report.to + ". \n \n Reason: " + report.description + "\n\n";
-    
-  }
-  else if(report.type == "Tax Report") {
-    url = "https://docs.google.com/spreadsheets/d/1qKu9sxr5YHj-z0GVlnU00ZH4Bebc6RsaG1yLkEnmss4/edit#gid=1215432976";
-    description ="A new [Tax Report]("+url+") has been submitted. \n \n" + report.from + " owes the Bank " + report.amount + " in taxes. \n \n"
-    
-  }
-  else if(report.type == "Payment Request") {
-    url = "https://docs.google.com/spreadsheets/d/1qKu9sxr5YHj-z0GVlnU00ZH4Bebc6RsaG1yLkEnmss4/edit#gid=1215432976";
-    description = "[Payment Request]("+url+") submitted. \n \n" +report.from + " has delivered " + report.quantity + " L of " + report.crop + " to the ILT, and is owed " + report.amount + ".\n \n";
-  }
-  else if(report.type == "Store Order") {
-    channel = "orders";
-    url = "https://docs.google.com/spreadsheets/d/1qKu9sxr5YHj-z0GVlnU00ZH4Bebc6RsaG1yLkEnmss4/edit#gid=1180204641";
-    description = "[Store Order]("+url+") placed by " + report.from + ". \n \n **Equipment:** "+ report.equipment + "\n\n **Details:** " + report.modifications +"\n \n";
-  }
-  message  =     {
-                   "embeds": [
-                      {
-                       "description": description ,
-                       "url": url,
-                       "color": 16763955
-                        }
-                     ]
-                 };
-                
-  sendDiscord(JSON.stringify(message), channel);
-}
-function sendDiscord(message, channel) { 
-  var storeUrl = 'https://discordapp.com/api/webhooks/571846379996184576/GCh04ZrHMfQuuSsFvVmTj1mH_dIHxPGbjFzUAEPizitA3SVm8dHJQmETKwmcK4BLHQWu';//'https://discordapp.com/api/webhooks/572091381217230848/2ceGgLZtygH64cv6eqy54uK73vh456LWeaBuAVk8TqOq1OMTk3tQQ_McZdf176459TJI';
-  var reportUrl ='https://discordapp.com/api/webhooks/572093430361227277/LThUsY6pqnSXru5kXEyeaEWr8ic0NupGpx60uD5M1C44B_B0P7-10T6OmE-3mQou3zV2'; //'https://discordapp.com/api/webhooks/572091855613722672/HMYtjhXAHLg94h_S-WcWmZhBENBn4xuzb2znnTbaf32v_spTZ6XfOLe4m7fzpfZJ_6n0';
-  var discordUrl='';
-  var params = {
-    method: "POST",
-    payload: message,
-    muteHttpExceptions: true
+  this.calculateExpenses = function() {
+    this.expenses = this.newVehicles + this.newLivestock + this.construction + this.landPurchase + this.vehicleRunning +this.vehicleLeasing + this.animalUpkeep + this.propMaintain + this.fuel + this.seed + this.fertilizer + this.saplings +this.water +this.wagePayment;
+    if (this.other<0) this.expenses+=this.other;
   };
-  if (channel=="orders") { discordUrl=storeUrl; } else { discordUrl = reportUrl;};
-  var response = UrlFetchApp.fetch(discordUrl, params);
+  this.calculateIncome();
+  this.calculateExpenses();
+};
+var common = function (date,auth,type) {
+  this.date = date;
+  this.auth = auth;
+  this.type = type;
+};
+var incomeReport = function(crop,farm,quantity) {
+  this.crop = crop;
+  this.farm = farm;
+  this.quantity = quantity;
+  this.total = 0;
   
-  Logger.log(response.getContentText());
-}
+  this.calculateTotal = function() {
+    this.total = priceList[priceListKeys.indexOf(this.crop)] * this.quantity / 1000;
+  };
+  this.calculateTotal();
+};
+var moneyTransfer = function (from,to,amount,reason) {
+  this.from = from;
+  this.to = to;
+  this.amount = amount;
+  this.reason = reason;
+};
+var storeOrder = function (farm,equipment,modification) {
+  this.farm = farm;
+  this.equipment = equipment;
+  this.modification = modification;
+};
 
-function cropCalc(ss, rangeValues, lastRow)
-{
-    var formulaString="";
-  for ( j = 0 ; j < lastRow - 1; j++){
-    if(rangeValues[j][0] === "Money Transfer" && rangeValues[j][10]>0) { ss.getRange(j+2,12).setNumberFormat("\"$\"#,###");};
-      if(rangeValues[j][0] === "Payment Request" && rangeValues[j][10] == "") {
-        formulaString = "=VLOOKUP(\"" + rangeValues[j][4].toString() + "\", \'OF Prices\'!A2:B11, 2, FALSE) * " + ss.getRange(j+2,7).getA1Notation() + "/1000";
-        ss.getRange(j+2,12).setValue(formulaString);
-        ss.getRange(j+2,12).setNumberFormat("\"$\"#,###");
-        ss.getRange(j+2,7).setNumberFormat("#,###");
-      }; 
-    };
-}
-
-function taxCalc(ss, rangeValues, lastRow) {
-  var formulaString="";
-  for ( j = 0 ; j < lastRow - 1; j++){
-      if(rangeValues[j][0] === "Tax Report" && rangeValues[j][10] == "") {
-        formulaString = "=SUM(" + ss.getRange(j+2,9,1,2).getA1Notation() + ") * 0.1";
-        ss.getRange(j+2,12).setValue(formulaString);
-        ss.getRange(j+2,12).setNumberFormat("\"$\"#,###");
-        ss.getRange(j+2,9).setNumberFormat("\"$\"#,###");
-        ss.getRange(j+2,10).setNumberFormat("\"$\"#,###");
-      }; 
-    };
-}
+var reportRow = function(common,incomeReport,taxReport,moneyTransfer,storeOrder) {
+  this.common = common;
+  this.incomeReport = incomeReport;
+  this.taxReport = taxReport;
+  this.moneyTransfer = moneyTransfer;
+  this.storeOrder = storeOrder;
+  this.status = "NEW";
   
+  var changeStatus = function(status) {
+   this.status = status; 
+  }
+}
 
-function updateStatus() {
-  //Payment Requests
-  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Payment Requests");
-  var rangeData = ss.getDataRange();
-  var lastRow = rangeData.getLastRow();
-  var searchRange = ss.getRange(2,1,lastRow-1,15);
-  var rangeValues = searchRange.getValues();
-  for ( j = 0 ; j < lastRow - 1; j++) {
-      if(rangeValues[j][0] != "" && (rangeValues[j][14] == "" || rangeValues[j][0] == "#NA")) ss.getRange(j+2,15).setValue("NEW");
-    };
-  //Money Transfers
-  ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Money Transfers");
-  rangeData = ss.getDataRange();
-  lastRow = rangeData.getLastRow();
-  searchRange = ss.getRange(2,1,lastRow-1,15);
-  rangeValues = searchRange.getValues();
-  for ( j = 0 ; j < lastRow - 1; j++) {
-      if(rangeValues[j][0] != "" && (rangeValues[j][14] == "" || rangeValues[j][0] == "#NA")) ss.getRange(j+2,15).setValue("NEW");
-    };
-  //Tax Reports
-  ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Tax Reports");
-  rangeData = ss.getDataRange();
-  lastRow = rangeData.getLastRow();
-  searchRange = ss.getRange(2,1,lastRow-1,15);
-  rangeValues = searchRange.getValues();
-  for ( j = 0 ; j < lastRow - 1; j++) {
-      if(rangeValues[j][0] != "" && (rangeValues[j][14] == "" || rangeValues[j][0] == "#NA")) ss.getRange(j+2,15).setValue("NEW");
-    };
+function copy(sourceRow, destinationRow, content) {
+ 
+}
+
+function loadNew() {
+ var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("RAWDATA");
+ var rangeData = ss.getDataRange();
+ var lastRow = rangeData.getLastRow();
+ var data = rangeData.getValues();
+  var newRow = data[lastRow-1];
+  var newReport = new reportRow();
+  //set common cols
+  newReport.common = loadCommon(newRow.slice(0,3));
+  newReport.incomeReport = loadIncomeReport(newRow.slice(3,6));
+  newReport.taxReport = loadTaxReport(newRow.slice(6,35));
+  newReport.moneyTransfer = new moneyTransfer(newRow[36],newRow[37],newRow[38],newRow[39]);
+  newReport.storeOrder = new storeOrder(newRow[40],newRow[41],newRow[42]);
+  Logger.log(newReport.taxReport.soldLand);
+}
+function loadCommon(range) {
+  return new common(range[0],range[1],range[2]);
+}
+    function loadIncomeReport(range) {
+   return new incomeReport(range[0],range[1],range[2]);
+  }
+function loadTaxReport(range) {
+return new taxReport(range[0],range[1],range[2],range[3],range[4],range[5],range[6],range[7],range[8],range[9],range[10],range[11],range[12],range[13],range[14],range[15],range[16],range[17],range[18],range[19],range[20],range[21],range[22],range[23],range[24],range[25],range[26],range[27],range[28]); 
 }
