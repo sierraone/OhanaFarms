@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         Trucksbook Dispatch Enhanced UI
 // @namespace    http://2endhunger.com
-// @version      0.1
+// @version      0.2
 // @description  Truck You Hunger!
 // @author       SierraOne
-// @match        https://trucksbook.eu/dispatch/*
+// @match        https://trucksbook.eu/dispatch/2
 // @grant        none
 // @require  https://gist.github.com/raw/2625891/waitForKeyElements.js
 // ==/UserScript==
@@ -87,10 +87,18 @@ function companyLoaded() {
         counter=0;
         var country = document.getElementById("country_from");
         var country_to = document.getElementById("country_to");
-    if (country.childElementCount<6) {
+        var nameLabel = document.getElementById("myModalLabel");
+        var enableBtn = document.createElement("button");
+        enableBtn.className = "btn btn-primary";
+        enableBtn.innerHTML = "Enable All DLCs";
+        enableBtn.style="margin-left:10px;background-color:red;";
+        enableBtn.onclick=activateDLCs;
+        nameLabel.parentNode.insertBefore(enableBtn, nameLabel.nextSibling);
+        function activateDLCs() {
         while (country.firstChild) {
     country.removeChild(country.firstChild);
     country_to.removeChild(country_to.firstChild);
+            enableBtn.style.display="none";
 }
     addCountries(country);
     addCountries(country_to);
@@ -100,11 +108,11 @@ function companyLoaded() {
     revertBtn = document.createElement("button");
         revertBtn.innerHTML = "Switch User Profile";
         revertBtn.className = "btn btn-primary";
-        revertBtn.style = "margin-right:5px;background-color:red;";
+        revertBtn.style = "margin-left:5px;background-color:red;";
         revertBtn.id = "revert_button";
         revertBtn.type = "button";
         revertBtn.onclick = revertUserID;
-        submitBtn.parentNode.insertBefore(revertBtn,submitBtn);
+        submitBtn.parentNode.insertBefore(revertBtn, submitBtn.nextSibling);
     realUser = userElement.value;
     userElement.value = "127872";
     }
