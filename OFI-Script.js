@@ -1,13 +1,15 @@
 // ==UserScript==
 // @name         Trucksbook Dispatch Enhanced UI
 // @namespace    http://2endhunger.com
-// @version      0.2
+// @version      0.2.1
 // @description  Truck You Hunger!
 // @author       SierraOne
 // @match        https://trucksbook.eu/dispatch/2
 // @grant        none
 // @require  https://gist.github.com/raw/2625891/waitForKeyElements.js
 // ==/UserScript==
+
+/** This is the Pre-Washington Patch. Expect TB update and push.**/
 var dict = [];
 dict["42p_print"] = "42 Print";
 dict.aport_abq = "ABQ Cargo Center";
@@ -65,6 +67,7 @@ dict.wal_food_mkt = "Wallbert (Food Market)";
 dict.wal_mkt = "Wallbert (Market)";
 dict.wal_whs = "Wallbert (Warehouse)";
 dict.wal_food_whs = "Wallbert (Food Warehouse)";
+
 var counter=0;
 
 var countries = [];
@@ -74,6 +77,7 @@ countries.nm = "New Mexico (New Mexico)";
 countries.or = "Oregon (Oregon)";
 countries.az = "Arizona (Arizona)";
 //countries.wa = "Washington";
+
 var revertBtn, submitBtn;
 var realUser;
 waitForKeyElements (".show-url", addOnClick);
